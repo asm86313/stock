@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { Search, BrainCircuit, Sparkles, Loader2, ImageIcon, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
-const StockChart = dynamic(() => import('../components/StockChart'), { 
+const StockChart = dynamic(() => import('../components/StockChart'), {
   ssr: false,
   loading: () => <div className="h-[300px] bg-[#1c1c1c] animate-pulse rounded-3xl" />
 });
@@ -13,7 +13,7 @@ export default function Home() {
   const [ticker, setTicker] = useState('');
   const [analysis, setAnalysis] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   // 이미지 관련 상태
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -46,10 +46,10 @@ export default function Home() {
   // 3. 분석 시작 함수
   const handleAnalyze = async () => {
     if (!ticker) return alert("종목명이나 코드를 입력해주세요.");
-    
+
     setLoading(true);
     setAnalysis('');
-    
+
     try {
       let imageBase64 = '';
       if (selectedImage) {
@@ -64,9 +64,9 @@ export default function Home() {
           imageBase64: imageBase64 // 이미지 전송
         })
       });
-      
+
       const data = await res.json();
-      
+
       if (data.result) {
         setAnalysis(data.result);
       } else {
@@ -93,7 +93,7 @@ export default function Home() {
           placeholder="종목 이름 입력 (예: 삼성전자)"
           value={ticker}
           onChange={(e) => setTicker(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+        //   onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
         />
       </div>
 
@@ -110,26 +110,26 @@ export default function Home() {
               <BrainCircuit className="h-6 w-6 text-blue-400" />
               <h2 className="text-xl font-bold">AI 투자 분석</h2>
             </div>
-            
+
             <div className="flex gap-2">
               {/* 이미지 추가 버튼 */}
-              <button 
+              <button
                 onClick={() => fileInputRef.current?.click()}
                 className="flex items-center gap-2 bg-[#333] hover:bg-[#444] px-4 py-2.5 rounded-xl font-medium transition-all"
               >
                 <ImageIcon className="h-4 w-4 text-gray-300" />
                 차트 첨부
               </button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleImageChange} 
-                accept="image/*" 
-                className="hidden" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                accept="image/*"
+                className="hidden"
               />
 
               {/* 분석 시작 버튼 */}
-              <button 
+              <button
                 onClick={handleAnalyze}
                 disabled={loading}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 px-5 py-2.5 rounded-xl font-bold transition-all"
@@ -144,7 +144,7 @@ export default function Home() {
           {imagePreview && (
             <div className="relative w-full h-40 bg-[#222] rounded-2xl overflow-hidden border border-[#333]">
               <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" />
-              <button 
+              <button
                 onClick={() => { setSelectedImage(null); setImagePreview(null); }}
                 className="absolute top-2 right-2 bg-red-500 p-1 rounded-full hover:bg-red-600"
               >
