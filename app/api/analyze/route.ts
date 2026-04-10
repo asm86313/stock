@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,8 @@ async function getNaverNews(query: string) {
 
 export async function POST(req: Request) {
   try {
-    const { ticker, imageBase64 } = await req.json();
+    const { ticker, imageBase64, aiModel } = await req.json();
+    const useGemini = aiModel === 'gemini';
     const now = new Date();
     const currentDate = now.toISOString().split('T')[0];
 
@@ -74,43 +76,55 @@ export async function POST(req: Request) {
           ※ ${currentDate} 실시간 데이터 기반 분석이며, 투자의 최종 책임은 본인에게 있습니다.
         `;
 
-        // 3. 이미지가 있다면 content에 추가
-    const userContent: Anthropic.MessageParam['content'] = [];
+            let resultText = '';
 
-    if (imageBase64) {
-      userContent.push({
-        type: 'image',
-        source: {
-          type: 'base64',
-          media_type: 'image/png',
-          data: imageBase64,
-        },
+    if (useGemini) {
+      // ── Gemini 분기 ──
+      const parts: Part[] = [{ text: prompt }];
+      if (imageBase64) {
+        parts.push({ inlineData: { mimeType: 'image/png', data: imageBase64 } });
+      }
+
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash', // gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash
+        generationConfig: { temperature: 0.2, maxOutputTokens: 6000 },
       });
-    }
 
-    userContent.push({ type: 'text', text: prompt });
+      console.log('=== [Gemini API 요청 시작] ===');
+      const geminiResult = await model.generateContent(parts);
+      resultText = geminiResult.response.text();
+      console.log('=== [Gemini API 응답 완료] ===');
 
-    // 4. Claude API 호출
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+      if (!resultText) throw new Error('Gemini 응답 데이터가 비어 있습니다.');
 
-    console.log("=== [Claude API 요청 시작] ===");
+    } else {
+      // ── Claude 분기 ──
+      const userContent: Anthropic.MessageParam['content'] = [];
+      if (imageBase64) {
+        userContent.push({
+          type: 'image',
+          source: { type: 'base64', media_type: 'image/png', data: imageBase64 },
+        });
+      }
+      userContent.push({ type: 'text', text: prompt });
 
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-5', // claude-opus-4-5, claude-sonnet-4-5, claude-haiku-4-5
-      max_tokens: 6000,
-      temperature: 0.2,
-      messages: [{ role: 'user', content: userContent }],
-    });
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-    const resultText = message.content
-      .filter((block) => block.type === 'text')
-      .map((block) => (block as Anthropic.TextBlock).text)
-      .join('');
+      console.log('=== [Claude API 요청 시작] ===');
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-5', // claude-opus-4-5, claude-sonnet-4-5, claude-haiku-4-5
+        max_tokens: 6000,
+        temperature: 0.2,
+        messages: [{ role: 'user', content: userContent }],
+      });
+      resultText = message.content
+        .filter((b) => b.type === 'text')
+        .map((b) => (b as Anthropic.TextBlock).text)
+        .join('');
+      console.log('=== [Claude API 응답 완료] ===');
 
-    console.log("=== [Claude API 응답 완료] ===");
-
-    if (!resultText) {
-      throw new Error('Claude 응답 데이터가 비어 있습니다.');
+      if (!resultText) throw new Error('Claude 응답 데이터가 비어 있습니다.');
     }
 
     return NextResponse.json({ result: resultText });

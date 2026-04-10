@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Search, BrainCircuit, Sparkles, Loader2, ImageIcon, X } from 'lucide-react';
+import { Search, BrainCircuit, Sparkles, Loader2, ImageIcon, X, Bot } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const StockChart = dynamic(() => import('../components/StockChart'), {
@@ -13,6 +13,7 @@ export default function Home() {
   const [ticker, setTicker] = useState('');
   const [analysis, setAnalysis] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedAI, setSelectedAI] = useState<'claude' | 'gemini'>('claude');
 
   // 이미지 관련 상태
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -61,7 +62,8 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           ticker: ticker,
-          imageBase64: imageBase64 // 이미지 전송
+          imageBase64: imageBase64,
+          aiModel: selectedAI,
         })
       });
 
@@ -109,6 +111,32 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <BrainCircuit className="h-6 w-6 text-blue-400" />
               <h2 className="text-xl font-bold">AI 투자 분석</h2>
+            </div>
+
+            {/* AI 선택 탭 */}
+            <div className="flex items-center bg-[#111] rounded-xl p-1 border border-[#2a2a2a]">
+              <button
+                onClick={() => setSelectedAI('claude')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  selectedAI === 'claude'
+                    ? 'bg-[#c96442] text-white shadow'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Bot className="h-3.5 w-3.5" />
+                Claude
+              </button>
+              <button
+                onClick={() => setSelectedAI('gemini')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  selectedAI === 'gemini'
+                    ? 'bg-[#4285f4] text-white shadow'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Gemini
+              </button>
             </div>
 
             <div className="flex gap-2">
